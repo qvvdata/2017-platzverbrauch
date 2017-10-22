@@ -1,0 +1,288 @@
+---
+title: "Narrativ Datentag"
+author: "Max Thomasberger"
+date: "9 10 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+
+#Environment löschen
+rm(list = ls())
+
+#---------------------------------
+#Libraries laden
+needs(ggplot2)
+needs(countrycode)
+needs(dplyr)
+needs(xlsx)
+needs(pwt8)
+needs(plotly)
+needs(knitr)
+needs(kableExtra)
+needs(reshape2)
+needs(DT)
+needs(tidyverse)
+needs(rgdal)
+needs(leaflet)
+needs(googlesheets)
+needs(RColorBrewer)
+needs(openxlsx)
+needs(googlesheets)
+needs(data.table)
+needs(xlsx)
+#---------------------------------
+
+#getwd()
+source("03_Versiegelung_Crossection.R")
+
+j2012.2016 <- readRDS("./outputs/2012-2016.rds")
+#debugonce(tablecruncher)
+
+huebsch <- function(x){
+  as.numeric(x)
+  x <- round(x, digits = 0)
+  prettyNum(x,decimal.mark = ",",big.mark = ".",scientific=FALSE)
+}
+
+at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="Jahr",flaeche="km2")
+
+#karte <- readOGR(dsn = "./data/statistik_austria/dauersiedlungsraum", layer = "STATISTIK_AUSTRIA_DSR_20111031")
+```
+
+#Einleitung
+
+Die Gesamtfläche Österreichs beträgt laut der Regionaldatenbank des BEV insgesamt `r huebsch(at$Fläche)` km2.
+
+Davon sind rund `r huebsch(at$Dauersiedelungsraum)` km2 potentiell besiedelbar. Diese Fläche wird auch Dauersiedlungsraum gennannt, und beträgt nur rund `r round(at$Dauersiedelungsraum/at$Fläche *100, digits=1)`% der gesamten österreichischen Fläche.
+
+Bereits `r round(at$Versiegelte_Fläche_gesamt/at$Dauersiedelungsraum *100,digits=1)`% der besiedelbaren Fläche Österreichs sind versiegelt.
+
+###HIER KARTE VON ÖSTERREICH: DAUERSIEDLUNGSRAUM
+
+
+```{r}
+# map <- leaflet () %>% 
+# 
+#   #deaktivierung des zooms  
+#   leaflet(options = leafletOptions(zoomControl = FALSE,
+#                                  minZoom = 4, maxZoom = 4)) %>%
+#   #shapefile der EU-28 hinzufügen
+#   addPolygons(data=karte,weight = 1, smoothFactor = 0.5,
+#     opacity = 1, fillOpacity = 1)
+# 
+# map
+#plot(karte)
+
+```
+
+
+#Versiegelung Pro Bundesland
+```{r, message=FALSE, warning=FALSE}
+
+
+at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="BL",flaeche="km2")
+
+# write.xlsx(at, "./outputs/gemeinden.xlsx")
+
+#View(at[at$PG=="Rosenburg-Mold",])
+vis1 <- at
+
+vis1$Nicht_Besidelbar <- vis1$Fläche - vis1$Dauersiedelungsraum
+vis1$Nicht_Versiegelt <- vis1$Dauersiedelungsraum - vis1$Versiegelte_Fläche_gesamt
+
+vis1$Nicht_Besidelbar <- vis1$Nicht_Besidelbar/vis1$Fläche *100
+vis1$Nicht_Versiegelt <- vis1$Nicht_Versiegelt/vis1$Fläche * 100
+vis1$Versiegelt <- vis1$Versiegelte_Fläche_gesamt/vis1$Fläche *100
+
+vis1$Test <- with(vis1, Nicht_Besidelbar+Nicht_Versiegelt+Versiegelt)
+
+
+bla <-vis1[,c("BL","Nicht_Besidelbar","Nicht_Versiegelt","Versiegelt")]
+colnames(bla) <- c("Bundesland","Nicht Besidelbar","Nicht Versiegelt","Versiegelt")
+
+bla <- melt(bla)
+
+test <- ggplot(data=bla,aes(x=Bundesland,y=value,fill=variable)) + 
+                          geom_bar(stat="identity") + 
+                          #geom_area(position = 'stack') +
+                          coord_flip() + ggtitle("Versiegelte Fläche 2016 im Bundesländervergleich")
+
+
+ggplotly(test)
+```
+
+#Versiegelte Fläche pro Kopf
+
+Mit rund 503m2 versiegeln die Burgenländer im Jahr 2016 in Österreich die meiste Fläche pro Einwohner. Wien liegt im österreichweiten Vergleich mit nur 58m2 versiegelter Fläche pro Einwohner an letzter Stelle. Dies ist einerseits auf die verwendete Schätzmethode zurückzuführen die Wien bevorzugt: Straßenflächen sind laut Umweltbundesamt im österreichweiten Schnitt nur zu 60% versiegelt, ein Wert der für Wien sicher zu niedrig angesetzt ist. Andererseits drückt die hohe Einwohnerzahl und Bevölkerungsdichte den Pro-Kopf Wert Wiens nach unten.
+
+```{r, message=FALSE, warning=FALSE}
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+
+dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
+
+dat$Jahr <- factor(dat$Jahr, levels=c("1985","2016"))
+
+# dat <- arrange(dat,desc(Versiegelt_percapita))
+# 
+# dat$BUNDESLAND <- factor(dat$BUNDESLAND,levels=c(dat$BUNDESLAND))
+dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
+
+percapita <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Versiegelt_percapita, fill=Jahr)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Versiegelte Fläche pro Kopf in Quadratmeter") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+ 
+
+
+ggplotly(percapita)
+```
+
+
+#Versiegelung Wachstumsraten
+
+```{r, message=FALSE, warning=FALSE}
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+
+dat <-dat %>% group_by(Jahr) %>%
+         mutate(growth=Versiegelt/dat[dat$Jahr==1985,]$Versiegelt * 100)
+
+dat <- as.data.frame(dat)
+dat$Jahr <- as.Date(as.character(dat$Jahr),"%Y")
+
+test <- ggplot(data=dat,aes(x=Jahr,y=growth,colour=BUNDESLAND,group=BUNDESLAND)) + 
+                          geom_line() 
+
+
+ggplotly(test)
+```
+
+#Versiegelung wächst stärker als Bevölkerung
+
+```{r, message=FALSE, warning=FALSE}
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+
+dat <-dat %>% group_by(Jahr) %>%
+         summarize("Versiegelte Fläche"=sum(Versiegelt),Bevölkerung=sum(Einwohner))
+
+
+dat$"Versiegelte Fläche" <- dat$"Versiegelte Fläche" / dat$"Versiegelte Fläche"[1] * 100
+dat$Bevölkerung <- dat$Bevölkerung / dat$Bevölkerung[1] * 100
+
+dat <- melt(dat)
+
+dat <- as.data.frame(dat)
+dat$Jahr <- as.Date(as.character(dat$Jahr),"%Y")
+
+test <- ggplot(data=dat,aes(x=Jahr,y=value,colour=variable,group=variable)) + 
+                          geom_line() + ggtitle("Wachstumsraten: Versiegelte Fläche und Bevölkerung")
+
+
+ggplotly(test)
+```
+
+#Besonders Bundesland XY betroffen
+
+```{r, message=FALSE, warning=FALSE}
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+
+dat <-dat %>% group_by(Jahr) %>%
+         mutate("Versiegelte Fläche"=Versiegelt/dat[dat$Jahr==1985,]$Versiegelt * 100,
+                Bevölkerung=Einwohner/dat[dat$Jahr==1985,]$Einwohner * 100)
+
+dat <- as.data.frame(dat)
+dat$Jahr <- as.Date(as.character(dat$Jahr),"%Y")
+
+vis <- dat[,c("Jahr","BUNDESLAND","Versiegelte Fläche","Bevölkerung")]
+vis <- melt(vis,id=c("Jahr","BUNDESLAND"))
+
+#head(vis)
+
+test <- ggplot(data=vis,aes(x=Jahr,y=value,colour=variable,group=variable)) + 
+                          geom_line() + facet_wrap(~BUNDESLAND)
+
+
+ggplotly(test)
+```
+
+#Der Wald ist gewachsen
+
+```{r, message=FALSE, warning=FALSE}
+
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+
+# dat <- dat %>% group_by(Jahr) %>% summarize(Wald = sum(Wälder)/10^9,Fläche=sum(Fläche)/10^9)
+# 
+# dat$quote <- dat$Wald/dat$Fläche *100
+
+
+dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
+
+dat$Jahr <- factor(dat$Jahr, levels=c("1985","2016"))
+
+dat$Wälder <- round(dat$Wälder/10^6, digits=0)
+
+# dat <- arrange(dat,desc(Versiegelt_percapita))
+# 
+# dat$BUNDESLAND <- factor(dat$BUNDESLAND,levels=c(dat$BUNDESLAND))
+dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
+
+wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Waldfläche in Quadratkilometer") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+ 
+
+
+ggplotly(wald)
+
+dat_85 <- dat[dat$Jahr=="1985",]
+dat_16 <- dat[dat$Jahr=="2016",]
+
+dat_16$Wälder <- dat_16$Wälder - dat_85$Wälder
+
+
+wald <- ggplot(data=as.data.frame(dat_16),aes(x=BUNDESLAND,y=Wälder)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Neue Waldfläche in Quadratkilometer seit 1985") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+
+wald
+```
+
+
+#So versiegelt ist Ihre Gemeinde
+
+###HIER KARTE DER GEMEINDEN
+
+```{r ge, message=FALSE, warning=FALSE}
+
+gemeinden <- tablecruncher(j2012.2016,Jahr=2016,aggregator="GKZ",flaeche="km2")
+
+gemeinden$Versiegelung <- gemeinden$Versiegelte_Fläche_gesamt / gemeinden$Fläche * 100
+
+write.xlsx(gemeinden,"./datawrapper/gemeinden_vis.xlsx")
+
+```
+
+
+###HIER SUCHMASKE mit Adresse
+
+```{r}
+
+at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="",flaeche="km2")
+
+at$Flächeninanspruchnahme
+
+```
+
+
+#Methodik
