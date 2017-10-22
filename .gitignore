@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+.httr-oauth
+~$*.xlsx
+
+outputs
+desktop.ini
+datawrapper
