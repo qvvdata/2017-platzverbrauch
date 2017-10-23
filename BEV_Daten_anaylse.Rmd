@@ -58,23 +58,34 @@ Die Gesamtfläche Österreichs beträgt laut der Regionaldatenbank des BEV insge
 
 Davon sind rund `r huebsch(at$Dauersiedelungsraum)` km2 potentiell besiedelbar. Diese Fläche wird auch Dauersiedlungsraum gennannt, und beträgt nur rund `r round(at$Dauersiedelungsraum/at$Fläche *100, digits=1)`% der gesamten österreichischen Fläche.
 
-Bereits `r round(at$Versiegelte_Fläche_gesamt/at$Dauersiedelungsraum *100,digits=1)`% der besiedelbaren Fläche Österreichs sind versiegelt.
+Bereits `r round(at$Versiegelte_Fläche_gesamt/at$Dauersiedelungsraum *100,digits=1)`% der besiedelbaren Fläche Österreichs ist versiegelt.
 
 ###HIER KARTE VON ÖSTERREICH: DAUERSIEDLUNGSRAUM
 
 
 ```{r}
-# map <- leaflet () %>% 
-# 
-#   #deaktivierung des zooms  
-#   leaflet(options = leafletOptions(zoomControl = FALSE,
-#                                  minZoom = 4, maxZoom = 4)) %>%
-#   #shapefile der EU-28 hinzufügen
-#   addPolygons(data=karte,weight = 1, smoothFactor = 0.5,
-#     opacity = 1, fillOpacity = 1)
-# 
-# map
-#plot(karte)
+at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="Jahr",flaeche="km2")
+
+
+at$Wald <- at$Wald/at$Fläche * 100
+at$Bergland <- at$Bergland/at$Fläche * 100
+at$Gewässer <- at$Gewässer/at$Fläche * 100
+at$Gebäude_Verkehr <- at$Gebäude_Verkehr/at$Fläche * 100
+at$Landwirtschaftlich <- at$Landwirtschaftlich/at$Fläche * 100
+
+vis <- at[,c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")]
+
+#vis$test <- with(vis, Wald + Bergland + Gewässer + Gebäude_Verkehr +Landwirtschaftlich)
+
+vis <- melt(vis)
+
+test <- ggplot(data=vis,aes(x=Jahr,y=value,fill=variable)) + 
+                          geom_bar(stat="identity")  + ggtitle("Flächenanteile Österreich")
+                          #geom_area(position = 'stack') 
+  
+
+
+ggplotly(test)
 
 ```
 
@@ -278,9 +289,9 @@ write.xlsx(gemeinden,"./datawrapper/gemeinden_vis.xlsx")
 
 ```{r}
 
-at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="",flaeche="km2")
+gemeinden <- tablecruncher(j2012.2016,Jahr=2016,aggregator="GKZ",flaeche="km2")
 
-at$Flächeninanspruchnahme
+
 
 ```
 

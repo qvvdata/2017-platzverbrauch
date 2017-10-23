@@ -12,6 +12,13 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
   data$Verkehrsfläche <- with(data, FL_STRASSENVERKEHRSANL + FL_VERKEHRSRANDFLAECHEN + FL_PARKPLAETZE + FL_SCHIENENVERKEHRSANL)
   data$Dauersiedelungsraum  <- with(data, Baufläche + Landwirtschaftlich + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
   
+  
+  data$Menschlich <- with(data, Baufläche + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
+  data$Bergland <- with(data, FL_ALPEN + FL_VEGETATIONSARME_FL	+ FL_FELS_GEROELL +	FL_GLETSCHER)
+  data$Gewässer <- with(data, FL_FLIESSENDE_GEWAESSER	+ FL_STEHENDE_GEWAESSER +	FL_GEWAESSERRANDFLAECHEN +	FL_FEUCHTGEBIETE)
+  data$Wälder <- with (data, FL_WAELDER	+ FL_KRUMMHOLZFLAECHEN	+ FL_FORSTSTRASSEN)
+  
+  
   #getting all colnames starting with "FL_"
   fl<- colnames(data)[grepl("FL_",colnames(data))]
   
@@ -58,7 +65,16 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
               
               Friedhöfe=sum(FL_FRIEDHOEFE),
               
-              Wald=sum(FL_WAELDER))
+              Wald=sum(Wälder),
+              
+              Bergland = sum(Bergland),
+              
+              Gewässer = sum(Gewässer),
+              
+              Landwirtschaftlich =sum(Landwirtschaftlich),
+              
+              Gebäude_Verkehr = sum(Menschlich)
+              )
   
   if (flaeche=="km2") {bl[2:ncol(bl)] <- bl[2:ncol(bl)]/10^6}
   
@@ -98,7 +114,11 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
     "Anteil_Inanspruchnahme_Siedlungsraum",
     "Versiegelte_Fläche_gesamt",
     "Gesamtversiegelungsgrad",
-    "Wald")]
+    "Wald",
+    "Bergland",
+    "Gewässer",
+    "Landwirtschaftlich",
+    "Gebäude_Verkehr")]
   
   bl[2:ncol(bl)] <- round(bl[2:ncol(bl)],digits=2)
   
