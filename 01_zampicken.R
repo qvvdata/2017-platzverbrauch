@@ -25,6 +25,12 @@ needs(data.table)
 needs(xlsx)
 #---------------------------------
 
+#
+# create subdirs
+#
+dir.create("./outputs")
+dir.create("./datawrapper")
+
 
 # Datenfileänderungen
 # 1979 bis 1990

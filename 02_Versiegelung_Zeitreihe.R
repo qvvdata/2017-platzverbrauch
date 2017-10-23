@@ -25,6 +25,12 @@ needs(data.table)
 needs(xlsx)
 #---------------------------------
 
+#
+# create subdirs
+#
+dir.create("./outputs")
+dir.create("./datawrapper")
+
 #################
 # 2012-2016
 #################
@@ -231,6 +237,7 @@ fl2<- colnames(j1995.2012)[grepl("FL",colnames(j1995.2012))]
 #
 ###########################
 
+j1979.1994$Gebäude_Verkehr
 
 colnames(j2012.2016)[colnames(j2012.2016) %in% colnames(j1995.2012)]
 

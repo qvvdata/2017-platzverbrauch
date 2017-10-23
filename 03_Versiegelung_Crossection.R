@@ -13,7 +13,7 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
   data$Dauersiedelungsraum  <- with(data, Baufläche + Landwirtschaftlich + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
   
   
-  data$Menschlich <- with(data, Baufläche + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
+  data$Gebäude_Verkehr <- with(data, Baufläche + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
   data$Bergland <- with(data, FL_ALPEN + FL_VEGETATIONSARME_FL	+ FL_FELS_GEROELL +	FL_GLETSCHER)
   data$Gewässer <- with(data, FL_FLIESSENDE_GEWAESSER	+ FL_STEHENDE_GEWAESSER +	FL_GEWAESSERRANDFLAECHEN +	FL_FEUCHTGEBIETE)
   data$Wälder <- with (data, FL_WAELDER	+ FL_KRUMMHOLZFLAECHEN	+ FL_FORSTSTRASSEN)
@@ -73,7 +73,7 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
               
               Landwirtschaftlich =sum(Landwirtschaftlich),
               
-              Gebäude_Verkehr = sum(Menschlich)
+              Gebäude_Verkehr = sum(Gebäude_Verkehr)
               )
   
   if (flaeche=="km2") {bl[2:ncol(bl)] <- bl[2:ncol(bl)]/10^6}

@@ -35,6 +35,13 @@ needs(data.table)
 needs(xlsx)
 #---------------------------------
 
+#
+# create subdirs
+#
+dir.create("./outputs")
+dir.create("./datawrapper")
+
+
 #getwd()
 source("03_Versiegelung_Crossection.R")
 
@@ -291,6 +298,7 @@ write.xlsx(gemeinden,"./datawrapper/gemeinden_vis.xlsx")
 
 gemeinden <- tablecruncher(j2012.2016,Jahr=2016,aggregator="GKZ",flaeche="km2")
 
+write.xlsx(gemeinden, "./outputs/gemeinden.xlsx")
 
 
 ```
