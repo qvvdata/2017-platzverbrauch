@@ -14,9 +14,9 @@ tablecruncher <- function(data,Jahr,aggregator,flaeche){
   
   
   data$Gebäude_Verkehr <- with(data, Baufläche + Verkehrsfläche + FL_FREIZEITFLAECHEN + FL_ABBAU_HALDEN_DEPONIEN)
-  data$Bergland <- with(data, FL_ALPEN + FL_VEGETATIONSARME_FL	+ FL_FELS_GEROELL +	FL_GLETSCHER)
+  data$Bergland <- with(data, FL_ALPEN + FL_VEGETATIONSARME_FL	+ FL_FELS_GEROELL +	FL_GLETSCHER + FL_KRUMMHOLZFLAECHEN)
   data$Gewässer <- with(data, FL_FLIESSENDE_GEWAESSER	+ FL_STEHENDE_GEWAESSER +	FL_GEWAESSERRANDFLAECHEN +	FL_FEUCHTGEBIETE)
-  data$Wälder <- with (data, FL_WAELDER	+ FL_KRUMMHOLZFLAECHEN	+ FL_FORSTSTRASSEN)
+  data$Wälder <- with (data, FL_WAELDER	+ FL_FORSTSTRASSEN)
   
   
   #getting all colnames starting with "FL_"
