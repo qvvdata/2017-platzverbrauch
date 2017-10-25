@@ -285,12 +285,13 @@ dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
 
 dat$Jahr <- factor(dat$Jahr, levels=c("1985","2016"))
 
+write.xlsx(dat[,c("Jahr","BUNDESLAND","Wälder")],"./outputs/wald.xlsx")
 dat$Wälder <- round(dat$Wälder/10^6, digits=0)
 
 # dat <- arrange(dat,desc(Versiegelt_percapita))
 # 
 # dat$BUNDESLAND <- factor(dat$BUNDESLAND,levels=c(dat$BUNDESLAND))
-dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
+#dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
 
 wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) + 
                           geom_bar(stat="identity", position="dodge") +
