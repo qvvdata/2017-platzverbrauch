@@ -144,7 +144,7 @@ write.xlsx(vis,"./outputs/tv_anteile.xlsx")
 ```{r, message=FALSE, warning=FALSE}
 
 
-at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="BL",flaeche="km2")
+at <- tablecruncher(j2012.2016,Jahr=2015,aggregator="PG",flaeche="km2")
 
 # write.xlsx(at, "./outputs/gemeinden.xlsx")
 
@@ -180,7 +180,7 @@ plot(test)
 Mit rund 503m2 versiegeln die Burgenländer im Jahr 2016 in Österreich die meiste Fläche pro Einwohner. Wien liegt im österreichweiten Vergleich mit nur 58m2 versiegelter Fläche pro Einwohner an letzter Stelle. Dies ist einerseits auf die verwendete Schätzmethode zurückzuführen die Wien bevorzugt: Straßenflächen sind laut Umweltbundesamt im österreichweiten Schnitt nur zu 60% versiegelt, ein Wert der für Wien sicher zu niedrig angesetzt ist. Andererseits drückt die hohe Einwohnerzahl und Bevölkerungsdichte den Pro-Kopf Wert Wiens nach unten.
 
 ```{r, message=FALSE, warning=FALSE}
-dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
+dat <- readRDS("./outputs/zeitreihe_versiegelung_gemeinden_79-16.rds")
 
 dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
 
