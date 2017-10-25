@@ -15,6 +15,7 @@ needs(kableExtra)
 needs(reshape2)
 needs(DT)
 needs(tidyverse)
+needs(readxl)
 needs(rgdal)
 needs(leaflet)
 needs(googlesheets)
@@ -281,3 +282,52 @@ j1979.2016_BL$Versiegelt_prozent <- j1979.2016_BL$Versiegelt / j1979.2016_BL$Fl�
 saveRDS(j1979.2016_BL,"./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
 
 write.xlsx2(as.data.frame(j1979.2016_BL),"./outputs/zeitreihe_versiegelung_bundesländer_85-16.xlsx")
+
+#####################
+#
+# Datenframe Gemeinden
+#
+#####################
+
+j2002.2016_PG <- j1979.2016[j1979.2016$Jahr>=1985,] %>%
+  group_by(Jahr,PG.NR) %>%
+  subset(Jahr >= 2002) %>%
+  summarize(Versiegelt=sum(Versiegelt,na.rm=TRUE),
+            Fläche=sum(as.numeric(FL_KATASTRALGEMEINDE),na.rm=TRUE),
+            Fläche_netto=sum(as.numeric(FL_Netto),na.rm=TRUE),
+            Wälder=sum(as.numeric(FL_WALD),na.rm=TRUE)) %>%
+            gather(typ, wert, Versiegelt:Wälder) %>%
+            unite(Jahr_typ, Jahr, typ, sep="#") %>%
+            spread(Jahr_typ, wert) %>%
+            rename(gkz=PG.NR)
+  
+source("borderman/BorderMan.R")
+j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
+j2002.2016_PG <- remove_teilungen(borderman(j2002.2016_PG))
+
+j2002.2016_PG <- j2002.2016_PG %>%
+  gather(typ, wert, `2002#Fläche`:`2016#Wälder`) %>%
+  separate(typ, c("jahr", "typ"), sep="#") %>%
+  rename(gkz = gkz_neu) %>%
+  spread(typ, wert)
+
+j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
+
+
+#j1979.2016_BL$BUNDESLAND <- as.character(j1979.2016_BL$BUNDESLAND)
+
+pop_gm <- read_excel("data/statistik_austria/Bevölkerung_Gemeinden.xls")
+pop_gm <- pop_gm %>%
+             gather(jahr, wert, `2017`:`2016`) %>%
+             subset(gkz<=90001 & jahr <2017)
+
+
+j20002.2016_PG_GM <- left_join(j2002.2016_PG, pop_gm, by = c("gkz" = "gkz", "jahr" = "jahr"))
+
+j20002.2016_PG_GM$Versiegelt_percapita <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$wert
+ 
+j20002.2016_PG_GM$Versiegelt_prozent <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$Fläche *100
+ 
+saveRDS(j20002.2016_PG_GM,"./outputs/zeitreihe_versiegelung_gemeinden_02-16.rds")
+write.csv2(as.data.frame(j20002.2016_PG_GM),"./outputs/zeitreihe_versiegelung_gemeinden_02-16.csv")
+write_json(j20002.2016_PG_GM, "./outputs/zeitreihe_versiegelung_gemeinden_02-16.json")
