@@ -2,7 +2,10 @@
 title: "Narrativ Datentag"
 author: "Max Thomasberger"
 date: "9 10 2017"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -84,6 +87,44 @@ vis <- at[,c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtsc
 
 #vis$test <- with(vis, Wald + Bergland + Gewässer + Gebäude_Verkehr +Landwirtschaftlich)
 
+
+
+
+
+dat <- readRDS("./outputs/1979-1990.rds")
+
+dat2<- readRDS("./outputs/1992-1994.rds")
+
+# nur spalten die auch 1979-1990 vorhanden waren
+dat2 <- dat2[,c(colnames(dat2) %in% colnames(dat))]
+j1979.1994 <- rbind(dat,dat2)
+
+j1979.1994$Wald <- j1979.1994$FL_WALD
+j1979.1994$Bergland <- with(j1979.1994,FL_ALPEN + FL_Unproduktiv..Öde.) 
+j1979.1994$Gewässer <- with(j1979.1994, FL_GEWÄSSER) 
+j1979.1994$Gebäude_Verkehr <- with(j1979.1994, FL_andere.SONSTIGE + FL_BAUFLÄCHEN + FL_Wege + FL_Straßen + FL_Gassen + FL_Plätze + FL_Ortsraum + FL_Bahngrund + FL_Bundesstraßen.A + FL_Bundesstraßen.S.und.B + FL_Landesstraßen + FL_Bezirksstraßen + FL_GÄRTEN) 
+j1979.1994$Landwirtschaftlich <- with(j1979.1994, FL_LANDW..GENUTZT + FL_WEINGÄRTEN) 
+
+
+j1979.1994 <- j1979.1994 %>% group_by(Jahr) %>% summarize(Wald=sum(as.numeric(Wald)),Bergland=sum(as.numeric(Bergland)),Gewässer=sum(as.numeric(Gewässer)),Gebäude_Verkehr=sum(as.numeric(Gebäude_Verkehr)), Landwirtschaftlich=sum(as.numeric(Landwirtschaftlich)), FL_KATASTRALGEMEINDE=sum(as.numeric(FL_KATASTRALGEMEINDE)))
+
+j1979.1994$Wald <- j1979.1994$Wald/j1979.1994$FL_KATASTRALGEMEINDE * 100
+j1979.1994$Bergland <- j1979.1994$Bergland /j1979.1994$FL_KATASTRALGEMEINDE * 100
+j1979.1994$Gewässer <- j1979.1994$Gewässer /j1979.1994$FL_KATASTRALGEMEINDE * 100
+j1979.1994$Gebäude_Verkehr <- j1979.1994$Gebäude_Verkehr /j1979.1994$FL_KATASTRALGEMEINDE * 100
+j1979.1994$Landwirtschaftlich <- j1979.1994$Landwirtschaftlich /j1979.1994$FL_KATASTRALGEMEINDE * 100
+
+
+vis2 <- j1979.1994[j1979.1994$Jahr=="1985",c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")]
+
+
+colnames(vis) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")
+colnames(vis2) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")
+
+
+
+vis <- rbind(vis,vis2)
+
 vis <- melt(vis)
 
 test <- ggplot(data=vis,aes(x=Jahr,y=value,fill=variable)) + 
@@ -92,7 +133,9 @@ test <- ggplot(data=vis,aes(x=Jahr,y=value,fill=variable)) +
   
 
 
-ggplotly(test)
+plot(test)
+
+write.xlsx(vis,"./outputs/tv_anteile.xlsx")
 
 ```
 
@@ -157,7 +200,7 @@ percapita <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Versiegelt_percap
  
 
 
-ggplotly(percapita)
+plot(percapita)
 ```
 
 
@@ -176,7 +219,7 @@ test <- ggplot(data=dat,aes(x=Jahr,y=growth,colour=BUNDESLAND,group=BUNDESLAND))
                           geom_line() 
 
 
-ggplotly(test)
+plot(test)
 ```
 
 #Versiegelung wächst stärker als Bevölkerung
@@ -200,7 +243,7 @@ test <- ggplot(data=dat,aes(x=Jahr,y=value,colour=variable,group=variable)) +
                           geom_line() + ggtitle("Wachstumsraten: Versiegelte Fläche und Bevölkerung")
 
 
-ggplotly(test)
+plot(test)
 ```
 
 #Besonders Bundesland XY betroffen
@@ -224,7 +267,7 @@ test <- ggplot(data=vis,aes(x=Jahr,y=value,colour=variable,group=variable)) +
                           geom_line() + facet_wrap(~BUNDESLAND)
 
 
-ggplotly(test)
+plot(test)
 ```
 
 #Der Wald ist gewachsen
@@ -258,7 +301,7 @@ wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) +
  
 
 
-ggplotly(wald)
+plot(wald)
 
 dat_85 <- dat[dat$Jahr=="1985",]
 dat_16 <- dat[dat$Jahr=="2016",]
