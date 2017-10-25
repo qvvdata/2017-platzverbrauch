@@ -315,11 +315,12 @@ write.xlsx2(as.data.frame(j1979.2016_BL),"./outputs/zeitreihe_versiegelung_bunde
 j2002.2016_PG <- j1979.2016[j1979.2016$Jahr>=1985,] %>%
   group_by(Jahr,PG.NR) %>%
   subset(Jahr >= 2002) %>%
-  summarize(Versiegelt=sum(Versiegelt,na.rm=TRUE),
+  summarize(Dauersiedelungsraum = sum(Dauersiedelungsraum, na.rm=TRUE),
+            Versiegelt=sum(Versiegelt,na.rm=TRUE),
             Fläche=sum(as.numeric(FL_KATASTRALGEMEINDE),na.rm=TRUE),
             Fläche_netto=sum(as.numeric(FL_Netto),na.rm=TRUE),
             Wälder=sum(as.numeric(FL_WALD),na.rm=TRUE)) %>%
-            gather(typ, wert, Versiegelt:Wälder) %>%
+            gather(typ, wert, Dauersiedelungsraum:Wälder) %>%
             unite(Jahr_typ, Jahr, typ, sep="#") %>%
             spread(Jahr_typ, wert) %>%
             rename(gkz=PG.NR)
@@ -329,15 +330,13 @@ j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
 j2002.2016_PG <- remove_teilungen(borderman(j2002.2016_PG))
 
 j2002.2016_PG <- j2002.2016_PG %>%
-  gather(typ, wert, `2002#Fläche`:`2016#Wälder`) %>%
+  gather(typ, wert, `2002#Dauersiedelungsraum`:`2016#Wälder`) %>%
   separate(typ, c("jahr", "typ"), sep="#") %>%
   rename(gkz = gkz_neu) %>%
   spread(typ, wert)
 
 j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
 
-
-#j1979.2016_BL$BUNDESLAND <- as.character(j1979.2016_BL$BUNDESLAND)
 
 pop_gm <- read_excel("data/statistik_austria/Bevölkerung_Gemeinden.xls")
 pop_gm <- pop_gm %>%
@@ -349,8 +348,7 @@ j20002.2016_PG_GM <- left_join(j2002.2016_PG, pop_gm, by = c("gkz" = "gkz", "jah
 
 j20002.2016_PG_GM$Versiegelt_percapita <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$wert
  
-j20002.2016_PG_GM$Versiegelt_prozent <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$Fläche *100
+j20002.2016_PG_GM$Versiegelt_prozent <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$Dauersiedelungsraum *100
  
 saveRDS(j20002.2016_PG_GM,"./outputs/zeitreihe_versiegelung_gemeinden_02-16.rds")
-write.csv2(as.data.frame(j20002.2016_PG_GM),"./outputs/zeitreihe_versiegelung_gemeinden_02-16.csv")
-write_json(j20002.2016_PG_GM, "./outputs/zeitreihe_versiegelung_gemeinden_02-16.json")
+write.csv(as.data.frame(j20002.2016_PG_GM),"./outputs/zeitreihe_versiegelung_gemeinden_02-16.csv")
