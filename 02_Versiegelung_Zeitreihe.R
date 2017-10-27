@@ -333,7 +333,8 @@ j2002.2016_PG <- j2002.2016_PG %>%
   gather(typ, wert, `2002#Dauersiedelungsraum`:`2016#Wälder`) %>%
   separate(typ, c("jahr", "typ"), sep="#") %>%
   rename(gkz = gkz_neu) %>%
-  spread(typ, wert)
+  spread(typ, wert) %>%
+  select(-Fläche_netto)
 
 j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
 
@@ -341,14 +342,65 @@ j2002.2016_PG$gkz <- as.numeric(j2002.2016_PG$gkz)
 pop_gm <- read_excel("data/statistik_austria/Bevölkerung_Gemeinden.xls")
 pop_gm <- pop_gm %>%
              gather(jahr, wert, `2017`:`2016`) %>%
-             subset(gkz<=90001 & jahr <2017)
+             subset(gkz<=90001 & jahr <2017) 
 
 
-j20002.2016_PG_GM <- left_join(j2002.2016_PG, pop_gm, by = c("gkz" = "gkz", "jahr" = "jahr"))
+j2002.2016_PG_GM <- left_join(j2002.2016_PG, pop_gm, by = c("gkz" = "gkz", "jahr" = "jahr"))
 
-j20002.2016_PG_GM$Versiegelt_percapita <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$wert
+j2002.2016_PG_GM$Versiegelt_percapita <- j2002.2016_PG_GM$Versiegelt / j2002.2016_PG_GM$wert
  
-j20002.2016_PG_GM$Versiegelt_prozent <- j20002.2016_PG_GM$Versiegelt / j20002.2016_PG_GM$Dauersiedelungsraum *100
+j2002.2016_PG_GM$Versiegelt_prozent <- j2002.2016_PG_GM$Versiegelt / j2002.2016_PG_GM$Dauersiedelungsraum *100
  
 saveRDS(j20002.2016_PG_GM,"./outputs/zeitreihe_versiegelung_gemeinden_02-16.rds")
 write.csv(as.data.frame(j20002.2016_PG_GM),"./outputs/zeitreihe_versiegelung_gemeinden_02-16.csv")
+
+#####################
+#
+# Datenframe Bund
+#
+#####################
+
+j2002.2016_PG_Bund <- j1979.2016 %>%
+          subset(Jahr>=2002) %>%
+          group_by(Jahr) %>%
+           summarize(Dauersiedelungsraum = sum(Dauersiedelungsraum, na.rm=TRUE),
+            Versiegelt=sum(Versiegelt,na.rm=TRUE),
+            Fläche=sum(as.numeric(FL_KATASTRALGEMEINDE),na.rm=TRUE),
+            Wälder=sum(as.numeric(FL_WALD),na.rm=TRUE))
+
+pop_b <- pop_bl %>%
+        subset(Jahr >=2002) %>%
+         group_by(Jahr) %>%
+        summarize(wert = sum(Einwohner, na.rm=TRUE))
+
+j2002.2016_PG_Bund <- left_join(j2002.2016_PG_Bund,pop_b)
+
+j2002.2016_PG_Bund$gemeinde <- "Österreich"
+j2002.2016_PG_Bund$gkz <- "00000"
+
+j2002.2016_PG_Bund$Versiegelt_percapita <- j2002.2016_PG_Bund$Versiegelt / j2002.2016_PG_Bund$wert
+j2002.2016_PG_Bund$Versiegelt_prozent <- j2002.2016_PG_Bund$Versiegelt / j2002.2016_PG_Bund$Dauersiedelungsraum *100
+
+j2002.2016_PG_Bund <- j2002.2016_PG_Bund %>%
+                        rename(jahr = Jahr)
+
+j2002.2016_PG_Bund_GM <- rbind(j2002.2016_PG_Bund, j2002.2016_PG_GM)
+
+j2002.2016_PG_Bund_GM <- j2002.2016_PG_Bund_GM %>%
+  select(-c(Wälder, wert, Versiegelt_prozent)) 
+
+j2002.2016_PG_Bund_GM$Versiegelt_percapita <- round(j2002.2016_PG_Bund_GM$Versiegelt_percapita, digits=0)
+write.csv(as.data.frame(j2002.2016_PG_Bund_GM),"./outputs/zeitreihe_versiegelung_gemeinden_02-16.csv", row.names = FALSE)
+
+
+#####################
+#Test zum Anteasern der Anwendung: Ist Platzverbrauch in jeder Gemeinde gestiegen?
+##################
+
+j2002.2016_PG_Bund_GM_test <- j2002.2016_PG_Bund_GM  %>%
+                              subset(jahr == 2002 | jahr == 2016) %>%
+                              select(gemeinde, jahr, gkz, Versiegelt_percapita) %>%
+                              spread(jahr, Versiegelt_percapita) %>%
+                              mutate(veränderung = `2016`-`2002`)
+
+

@@ -239,11 +239,15 @@ dat <- melt(dat)
 dat <- as.data.frame(dat)
 dat$Jahr <- as.Date(as.character(dat$Jahr),"%Y")
 
+dat_dw <- dat %>%
+          spread(variable, value)
+write.xlsx(dat_dw,"./datawrapper/VersVsBev_vis.xlsx")
+
 test <- ggplot(data=dat,aes(x=Jahr,y=value,colour=variable,group=variable)) + 
                           geom_line() + ggtitle("Wachstumsraten: Versiegelte Fläche und Bevölkerung")
-
-
 plot(test)
+
+
 ```
 
 #Besonders Bundesland XY betroffen
@@ -292,6 +296,12 @@ dat$Wälder <- round(dat$Wälder/10^6, digits=0)
 # dat$BUNDESLAND <- factor(dat$BUNDESLAND,levels=c(dat$BUNDESLAND))
 dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
 
+dat_dw <- dat %>%
+          select(Jahr, BUNDESLAND, Wälder) %>%
+          spread(Jahr, Wälder)         
+          
+write.xlsx(dat_dw,"./datawrapper/WaldWachstum_vis.xlsx")
+
 wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) + 
                           geom_bar(stat="identity", position="dodge") +
                           ggtitle("Waldfläche in Quadratkilometer") + 
@@ -299,7 +309,10 @@ wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) +
                                 axis.title.x=element_blank(),
                                 axis.title.y=element_blank())  
  
+dat_dw$zuwachs <- dat_dw$`2016` - dat_dw$`1985`
+dat_dw$zuwachspct <- round(dat_dw$zuwachs/dat_dw$`2016`*100, digits = 0)
 
+write.xlsx(dat_dw,"./datawrapper/WaldWachstum_Pct_Absvis.xlsx")
 
 plot(wald)
 
@@ -308,6 +321,8 @@ dat_16 <- dat[dat$Jahr=="2016",]
 
 dat_16$Wälder <- dat_16$Wälder - dat_85$Wälder
 
+dat_16_dw <- dat_16  %>%
+             select()
 
 wald <- ggplot(data=as.data.frame(dat_16),aes(x=BUNDESLAND,y=Wälder)) + 
                           geom_bar(stat="identity", position="dodge") +
