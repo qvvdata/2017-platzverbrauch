@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="vendor/choices.min.css" />
+    <link rel="stylesheet" href="vendor/nv.d3.css" />
+    <link rel="stylesheet" href="qvv.css" />
+    <meta charset='utf-8'/>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <script src="https://data.addendum.org/gfx/oligrapher/pym.v1.min.js"></script>
+    <script>QVVID='2017-10-platzverbrauch-gemeinden';</script>
+    <script src="vendor/choices.min.js"></script>
+    <script src="vendor/nv.d3.min.js"></script>
+    <script src="vendor/textures.min.js"></script>
+    <script src="qvv.js"></script>
+    <style>
+    * { box-sizing: border-box; }
+    .choices__inner {
+        min-height: 0;
+    }
+    rect.dauersiedlungsraum {
+        fill: #ebbd64;
+        opacity: 0.7;
+    }
+    rect.versiegelt {
+        opacity: 0.8;
+    }
+    rect.full {
+        fill: #dbdbdb;
+    }
+    text {
+        font-size: 12px;
+    }
+    .nvd3 text {
+        font-family: Sailec, sans-serif;
+    }
+    svg#lines {
+        height: 220px;
+    }
+    #lines_title, #area_title {
+        font-weight: bold;
+    }
+    #area_title {
+        margin-bottom: 0.5em;
+    }
+    .nvd3 .nv-axis.nv-y .zero line,
+    .nvd3 .nv-axis.nv-x .zero line {
+        stroke: black;
+        stroke-opacity: 1;
+    }#A30000
+    .nvd3 .nv-axis.nv-y .domain {
+        stroke-opacity: 0;
+    }
+    </style>
+</head>
+<body>
+    <h1>Wie viel Boden in Ihrer Gemeinde versiegelt ist</h1>
+    <div id="graph">
+        <select id="sel"></select>
+        <p id="lines_title"></p>
+        <svg id="lines"></svg>
+        <p id="area_title"></p>
+        <svg id="area"></svg>
+    </div>
+    <script src="script.js"></script>
+    <footer>
+        <!-- <p class="detail"></p> -->
+        <p class="source"><strong>Quelle —</strong> BEV</p>
+    </footer>
+</body>
+</html>
