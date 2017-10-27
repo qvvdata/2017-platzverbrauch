@@ -60,6 +60,9 @@ huebsch <- function(x){
 at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="Jahr",flaeche="km2")
 
 #karte <- readOGR(dsn = "./data/statistik_austria/dauersiedlungsraum", layer = "STATISTIK_AUSTRIA_DSR_20111031")
+
+#deactivate scientific notation
+options(scipen=999)
 ```
 
 #Einleitung
@@ -73,10 +76,22 @@ Bereits `r round(at$Versiegelte_Fläche_gesamt/at$Dauersiedelungsraum *100,digit
 ###HIER KARTE VON ÖSTERREICH: DAUERSIEDLUNGSRAUM
 
 
-```{r}
+
+# Grafiken für TV
+```{r, message=FALSE, warning=FALSE}
+
+################
+#
+# Prozente
+#
+###############
+
+#####
+#2016
+#####
 at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="Jahr",flaeche="km2")
 
-
+# Prozent für 2016
 at$Wald <- at$Wald/at$Fläche * 100
 at$Bergland <- at$Bergland/at$Fläche * 100
 at$Gewässer <- at$Gewässer/at$Fläche * 100
@@ -88,26 +103,36 @@ vis <- at[,c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtsc
 #vis$test <- with(vis, Wald + Bergland + Gewässer + Gebäude_Verkehr +Landwirtschaftlich)
 
 
+#####
+#1985
+#####
 
-
-
+#BEV Datenframes reinladen
 dat <- readRDS("./outputs/1979-1990.rds")
-
 dat2<- readRDS("./outputs/1992-1994.rds")
 
 # nur spalten die auch 1979-1990 vorhanden waren
 dat2 <- dat2[,c(colnames(dat2) %in% colnames(dat))]
 j1979.1994 <- rbind(dat,dat2)
 
+#Kategorien zusammenfassen
 j1979.1994$Wald <- j1979.1994$FL_WALD
 j1979.1994$Bergland <- with(j1979.1994,FL_ALPEN + FL_Unproduktiv..Öde.) 
 j1979.1994$Gewässer <- with(j1979.1994, FL_GEWÄSSER) 
 j1979.1994$Gebäude_Verkehr <- with(j1979.1994, FL_andere.SONSTIGE + FL_BAUFLÄCHEN + FL_Wege + FL_Straßen + FL_Gassen + FL_Plätze + FL_Ortsraum + FL_Bahngrund + FL_Bundesstraßen.A + FL_Bundesstraßen.S.und.B + FL_Landesstraßen + FL_Bezirksstraßen + FL_GÄRTEN) 
 j1979.1994$Landwirtschaftlich <- with(j1979.1994, FL_LANDW..GENUTZT + FL_WEINGÄRTEN) 
 
+#Auf Österreich aufaggregieren
+j1979.1994 <- j1979.1994 %>% 
+              group_by(Jahr) %>%     
+              summarize(Wald=sum(as.numeric(Wald)),
+                        Bergland=sum(as.numeric(Bergland)),
+                        Gewässer=sum(as.numeric(Gewässer)),
+                        Gebäude_Verkehr=sum(as.numeric(Gebäude_Verkehr)), 
+                        Landwirtschaftlich=sum(as.numeric(Landwirtschaftlich)), 
+                        FL_KATASTRALGEMEINDE=sum(as.numeric(FL_KATASTRALGEMEINDE)))
 
-j1979.1994 <- j1979.1994 %>% group_by(Jahr) %>% summarize(Wald=sum(as.numeric(Wald)),Bergland=sum(as.numeric(Bergland)),Gewässer=sum(as.numeric(Gewässer)),Gebäude_Verkehr=sum(as.numeric(Gebäude_Verkehr)), Landwirtschaftlich=sum(as.numeric(Landwirtschaftlich)), FL_KATASTRALGEMEINDE=sum(as.numeric(FL_KATASTRALGEMEINDE)))
-
+#Prozente berechnen
 j1979.1994$Wald <- j1979.1994$Wald/j1979.1994$FL_KATASTRALGEMEINDE * 100
 j1979.1994$Bergland <- j1979.1994$Bergland /j1979.1994$FL_KATASTRALGEMEINDE * 100
 j1979.1994$Gewässer <- j1979.1994$Gewässer /j1979.1994$FL_KATASTRALGEMEINDE * 100
@@ -115,27 +140,160 @@ j1979.1994$Gebäude_Verkehr <- j1979.1994$Gebäude_Verkehr /j1979.1994$FL_KATAST
 j1979.1994$Landwirtschaftlich <- j1979.1994$Landwirtschaftlich /j1979.1994$FL_KATASTRALGEMEINDE * 100
 
 
+# Datenframes 1985+2016 zusammenfügen
 vis2 <- j1979.1994[j1979.1994$Jahr=="1985",c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")]
-
 
 colnames(vis) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")
 colnames(vis2) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")
 
-
-
 vis <- rbind(vis,vis2)
 
+
+####
+# Änderung in Prozentpunkten
+###
+
+vis_diff <- vis
+vis_diff[1,2:6] <- vis_diff[1,2:6] - vis_diff[2,2:6]
+vis_diff <- vis_diff[-2,]
+
+
+
+####
+# Wide to Long
+####
+
+vis_diff <- melt(vis_diff)
 vis <- melt(vis)
 
-test <- ggplot(data=vis,aes(x=Jahr,y=value,fill=variable)) + 
-                          geom_bar(stat="identity")  + ggtitle("Flächenanteile Österreich")
-                          #geom_area(position = 'stack') 
+vis_diff$Änderung[vis_diff$value>0] <- "Positiv"
+vis_diff$Änderung[vis_diff$value<0] <- "Negativ"
+
+#--------------------
+###########
+# GGPLOT
+###########
+
+tv_at <- ggplot(data=vis,aes(x=Jahr,y=value,fill=variable)) + 
+                          geom_bar(stat="identity")  + ggtitle("Flächenanteile Österreich") +
+                          theme(axis.title.x=element_blank(),
+                                axis.title.y=element_blank())
+                          
+
+
+plot(tv_at)
+
+
+
+tv_at_diff <- ggplot(data=vis_diff[! vis_diff$variable %in% c("Alpen und Ödland","Gewässer"),],aes(x=variable,y=value,fill=Änderung)) +       
+                          scale_y_continuous(limits=c(-4,4)) +
+                          geom_col(position="dodge")  + ggtitle("Änderung in Prozentpunkten zwischen 1985 und 2006") + 
+                          coord_flip() +
+                          theme(axis.title.x=element_blank(),
+                                axis.title.y=element_blank())
+                          
   
 
 
-plot(test)
+plot(tv_at_diff)
+#--------------------
+
+#########
+# Rausspeichern
+########
+
+ggsave(plot=tv_at,"./outputs/tv_anteile.pdf")
+ggsave(plot=tv_at_diff,"./outputs/tv_anteile_prozentpunkte.pdf")
 
 write.xlsx(vis,"./outputs/tv_anteile.xlsx")
+write.xlsx(vis_diff[! vis_diff$variable %in% c("Alpen und Ödland","Gewässer"),],"./outputs/tv_anteile_prozentpunkte.xlsx")
+
+
+
+```
+
+
+# Grafiken für TV
+```{r, message=FALSE, warning=FALSE}
+
+################
+#
+# Absolut
+#
+###############
+
+#####
+#2016
+#####
+at <- tablecruncher(j2012.2016,Jahr=2016,aggregator="Jahr",flaeche="km2")
+
+
+vis <- at[,c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")]
+
+#vis$test <- with(vis, Wald + Bergland + Gewässer + Gebäude_Verkehr +Landwirtschaftlich)
+
+
+#####
+#1985
+#####
+
+#BEV Datenframes reinladen
+dat <- readRDS("./outputs/1979-1990.rds")
+dat2<- readRDS("./outputs/1992-1994.rds")
+
+# nur spalten die auch 1979-1990 vorhanden waren
+dat2 <- dat2[,c(colnames(dat2) %in% colnames(dat))]
+j1979.1994 <- rbind(dat,dat2)
+
+#Kategorien zusammenfassen
+j1979.1994$Wald <- j1979.1994$FL_WALD
+j1979.1994$Bergland <- with(j1979.1994,FL_ALPEN + FL_Unproduktiv..Öde.) 
+j1979.1994$Gewässer <- with(j1979.1994, FL_GEWÄSSER) 
+j1979.1994$Gebäude_Verkehr <- with(j1979.1994, FL_andere.SONSTIGE + FL_BAUFLÄCHEN + FL_Wege + FL_Straßen + FL_Gassen + FL_Plätze + FL_Ortsraum + FL_Bahngrund + FL_Bundesstraßen.A + FL_Bundesstraßen.S.und.B + FL_Landesstraßen + FL_Bezirksstraßen + FL_GÄRTEN) 
+j1979.1994$Landwirtschaftlich <- with(j1979.1994, FL_LANDW..GENUTZT + FL_WEINGÄRTEN) 
+
+#Auf Österreich aufaggregieren
+j1979.1994 <- j1979.1994 %>% 
+              group_by(Jahr) %>%     
+              summarize(Wald=sum(as.numeric(Wald)/10^6),
+                        Bergland=sum(as.numeric(Bergland)/10^6),
+                        Gewässer=sum(as.numeric(Gewässer)/10^6),
+                        Gebäude_Verkehr=sum(as.numeric(Gebäude_Verkehr)/10^6), 
+                        Landwirtschaftlich=sum(as.numeric(Landwirtschaftlich)/10^6), 
+                        FL_KATASTRALGEMEINDE=sum(as.numeric(FL_KATASTRALGEMEINDE))/10^6)
+
+
+# Datenframes 1985+2016 zusammenfügen
+vis2 <- j1979.1994[j1979.1994$Jahr=="1985",c("Jahr","Wald","Bergland","Gewässer","Gebäude_Verkehr","Landwirtschaftlich")]
+
+colnames(vis) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude & Verkehr","Landwirtschaftlich")
+colnames(vis2) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude & Verkehr","Landwirtschaftlich")
+
+
+
+vis <- as.data.frame(rbind(vis,vis2))
+
+vis <- melt(vis)
+
+
+
+# GGPLOT
+
+tv_at <- ggplot(data=vis[vis$variable %in% c("Wald","Landwirtschaftlich","Gebäude & Verkehr"),],aes(x=variable,y=value,fill=Jahr)) + 
+                          geom_bar(stat="identity",position="dodge")  + 
+                          ggtitle("Flächen in Österreich in km2") +
+                          theme(axis.title.x=element_blank(),
+                                axis.title.y=element_blank()) +
+                          scale_y_continuous(labels=huebsch)
+                          
+
+  
+
+
+plot(tv_at)
+ggsave(plot=tv_at,"./outputs/tv_anteile_absolut.pdf")
+
+write.xlsx(vis[vis$variable %in% c("Wald","Landwirtschaftlich","Gebäude & Verkehr"),],"./outputs/tv_anteile_absolut.xlsx")
 
 ```
 
@@ -144,7 +302,7 @@ write.xlsx(vis,"./outputs/tv_anteile.xlsx")
 ```{r, message=FALSE, warning=FALSE}
 
 
-at <- tablecruncher(j2012.2016,Jahr=2015,aggregator="PG",flaeche="km2")
+at <- tablecruncher(j2012.2016,Jahr=2015,aggregator="BL",flaeche="km2")
 
 # write.xlsx(at, "./outputs/gemeinden.xlsx")
 
@@ -180,7 +338,7 @@ plot(test)
 Mit rund 503m2 versiegeln die Burgenländer im Jahr 2016 in Österreich die meiste Fläche pro Einwohner. Wien liegt im österreichweiten Vergleich mit nur 58m2 versiegelter Fläche pro Einwohner an letzter Stelle. Dies ist einerseits auf die verwendete Schätzmethode zurückzuführen die Wien bevorzugt: Straßenflächen sind laut Umweltbundesamt im österreichweiten Schnitt nur zu 60% versiegelt, ein Wert der für Wien sicher zu niedrig angesetzt ist. Andererseits drückt die hohe Einwohnerzahl und Bevölkerungsdichte den Pro-Kopf Wert Wiens nach unten.
 
 ```{r, message=FALSE, warning=FALSE}
-dat <- readRDS("./outputs/zeitreihe_versiegelung_gemeinden_79-16.rds")
+dat <- readRDS("./outputs/zeitreihe_versiegelung_bundesländer_85-16.rds")
 
 dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
 
@@ -231,19 +389,29 @@ dat <-dat %>% group_by(Jahr) %>%
          summarize("Versiegelte Fläche"=sum(Versiegelt),Bevölkerung=sum(Einwohner))
 
 
+
+
 dat$"Versiegelte Fläche" <- dat$"Versiegelte Fläche" / dat$"Versiegelte Fläche"[1] * 100
 dat$Bevölkerung <- dat$Bevölkerung / dat$Bevölkerung[1] * 100
+
+write.xlsx(dat,"./outputs/wachstumsraten_at.xlsx")
 
 dat <- melt(dat)
 
 dat <- as.data.frame(dat)
+
+
 dat$Jahr <- as.Date(as.character(dat$Jahr),"%Y")
+
+dat_dw <- dat %>%
+          spread(variable, value)
+write.xlsx(dat_dw,"./datawrapper/VersVsBev_vis.xlsx")
 
 test <- ggplot(data=dat,aes(x=Jahr,y=value,colour=variable,group=variable)) + 
                           geom_line() + ggtitle("Wachstumsraten: Versiegelte Fläche und Bevölkerung")
-
-
 plot(test)
+
+
 ```
 
 #Besonders Bundesland XY betroffen
@@ -285,12 +453,19 @@ dat <- dat[dat$Jahr=="1985" | dat$Jahr=="2016",]
 
 dat$Jahr <- factor(dat$Jahr, levels=c("1985","2016"))
 
+write.xlsx(dat[,c("Jahr","BUNDESLAND","Wälder")],"./outputs/wald.xlsx")
 dat$Wälder <- round(dat$Wälder/10^6, digits=0)
 
 # dat <- arrange(dat,desc(Versiegelt_percapita))
 # 
 # dat$BUNDESLAND <- factor(dat$BUNDESLAND,levels=c(dat$BUNDESLAND))
-dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
+#dat$Versiegelt_percapita <- round(dat$Versiegelt_percapita,digits=0)
+
+dat_dw <- dat %>%
+          select(Jahr, BUNDESLAND, Wälder) %>%
+          spread(Jahr, Wälder)         
+          
+write.xlsx(dat_dw,"./datawrapper/WaldWachstum_vis.xlsx")
 
 wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) + 
                           geom_bar(stat="identity", position="dodge") +
@@ -299,7 +474,10 @@ wald <- ggplot(data=as.data.frame(dat),aes(x=BUNDESLAND,y=Wälder, fill=Jahr)) +
                                 axis.title.x=element_blank(),
                                 axis.title.y=element_blank())  
  
+dat_dw$zuwachs <- dat_dw$`2016` - dat_dw$`1985`
+dat_dw$zuwachspct <- round(dat_dw$zuwachs/dat_dw$`2016`*100, digits = 0)
 
+write.xlsx(dat_dw,"./datawrapper/WaldWachstum_Pct_Absvis.xlsx")
 
 plot(wald)
 
@@ -308,6 +486,8 @@ dat_16 <- dat[dat$Jahr=="2016",]
 
 dat_16$Wälder <- dat_16$Wälder - dat_85$Wälder
 
+dat_16_dw <- dat_16  %>%
+             select()
 
 wald <- ggplot(data=as.data.frame(dat_16),aes(x=BUNDESLAND,y=Wälder)) + 
                           geom_bar(stat="identity", position="dodge") +
