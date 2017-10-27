@@ -293,7 +293,11 @@ tv_at <- ggplot(data=vis[vis$variable %in% c("Wald","Landwirtschaftlich","Gebäu
 plot(tv_at)
 ggsave(plot=tv_at,"./outputs/tv_anteile_absolut.pdf")
 
-write.xlsx(vis[vis$variable %in% c("Wald","Landwirtschaftlich","Gebäude & Verkehr"),],"./outputs/tv_anteile_absolut.xlsx")
+datawrapper <- vis[vis$variable %in% c("Wald","Landwirtschaftlich","Gebäude & Verkehr","value"),]
+
+datawrapper <- dcast(datawrapper, variable ~ Jahr, value.var = "value")
+
+write.xlsx(datawrapper,"./outputs/tv_anteile_absolut.xlsx")
 
 ```
 
@@ -485,6 +489,92 @@ wald
 ```
 
 
+#Die Landwirtschaftliche Fläche ist geschrumpft
+
+```{r, message=FALSE, warning=FALSE}
+
+#####
+#2016
+#####
+
+dat_16 <- tablecruncher(j2012.2016,Jahr=2016,aggregator="BL",flaeche="km2")
+
+dat_16 <- dat_16[,c("BL", "Landwirtschaftlich")]
+dat_16$Jahr <- "2016"
+colnames(dat_16)[1] <- "BUNDESLAND"
+
+
+#####
+#1985
+#####
+
+#BEV Datenframes reinladen
+dat <- readRDS("./outputs/1979-1990.rds")
+dat2<- readRDS("./outputs/1992-1994.rds")
+
+# nur spalten die auch 1979-1990 vorhanden waren
+dat2 <- dat2[,c(colnames(dat2) %in% colnames(dat))]
+j1979.1994 <- rbind(dat,dat2)
+
+j1979.1994$Landwirtschaftlich <- with(j1979.1994, FL_LANDW..GENUTZT + FL_WEINGÄRTEN) 
+
+#Auf Österreich aufaggregieren
+j1979.1994 <- j1979.1994 %>% 
+              group_by(BUNDESLAND,Jahr) %>%     
+              summarize(Landwirtschaftlich=sum(as.numeric(Landwirtschaftlich)/10^6))
+
+dat_85 <- j1979.1994[j1979.1994$Jahr==1985,]
+
+
+vis <- rbind(as.data.frame(dat_16),as.data.frame(dat_85))
+
+
+Landwirtschaftlich <- ggplot(data=vis,aes(x=BUNDESLAND,y=Landwirtschaftlich, fill=Jahr)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Landwirtschaftliche Fläche in Quadratkilometer") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+ 
+
+
+plot(Landwirtschaftlich)
+
+datawrapper <- dcast(vis, BUNDESLAND ~ Jahr, value.var = "Landwirtschaftlich")
+
+datawrapper$"Zuwachs in km2" <- datawrapper$`2016` - datawrapper$`1985`
+datawrapper$"Zuwachs in %" <- datawrapper$"Zuwachs in km2" / datawrapper$`1985` * 100
+
+datawrapper$"Zuwachs in km2" <- datawrapper$"Zuwachs in km2"  *-1
+datawrapper$"Zuwachs in %" <- datawrapper$"Zuwachs in %" *-1
+
+write.xlsx(datawrapper, "./datawrapper/landwirtschaftlich.xlsx")
+
+write.xlsx(datawrapper[,1:3], "./datawrapper/landwirtschaftlich_absolut.xlsx")
+
+# dat_85 <- dat[dat$Jahr=="1985",]
+# dat_16 <- dat[dat$Jahr=="2016",]
+
+dat_16$Landwirtschaftlich <- dat_16$Landwirtschaftlich - dat_85$Landwirtschaftlich
+
+
+
+Landwirtschaftlich_delta <- ggplot(data=as.data.frame(dat_16),aes(x=BUNDESLAND,y=Landwirtschaftlich)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Neue Waldfläche in Quadratkilometer seit 1985") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+
+Landwirtschaftlich_delta
+
+
+
+
+```
+
+
+
 #So versiegelt ist Ihre Gemeinde
 
 ###HIER KARTE DER GEMEINDEN
@@ -512,4 +602,34 @@ write.xlsx(gemeinden, "./outputs/gemeinden.xlsx")
 ```
 
 
-#Methodik
+#Eurostat
+
+```{r}
+
+dat <- read.xlsx("./data/eurostat/Imperviousness09-12_stats.xlsx")
+
+dat$Land <- countrycode(dat$Country.code, "eurostat", "country.name.de")
+
+dat$Land[dat$Country.code=="GB"] <- "Vereinigtes Königreich"
+dat$Land[dat$Country.code=="GR"] <- "Griechenland"
+
+colnames(dat)[4] <- "2009"
+colnames(dat)[5] <- "2012"
+
+dat <- dat[,c("Land","2009","2012")]
+
+dat <- arrange(dat,desc(dat[,2]))
+
+write.xlsx(dat,"./datawrapper/eu_versiegelt.xlsx")
+
+
+
+versiegelt_eu <- ggplot(data=dat,aes(x=Land,y=Landwirtschaftlich)) + 
+                          geom_bar(stat="identity", position="dodge") +
+                          ggtitle("Neue Waldfläche in Quadratkilometer seit 1985") + 
+                          theme(axis.text.x = element_text(angle = 90, hjust = 1), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank())  
+
+```
+
