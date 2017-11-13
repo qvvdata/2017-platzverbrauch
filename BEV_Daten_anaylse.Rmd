@@ -273,6 +273,8 @@ colnames(vis2) <- c("Jahr","Wald","Alpen und Ödland","Gewässer","Gebäude & Ve
 
 vis <- as.data.frame(rbind(vis,vis2))
 
+write.xlsx(vis,"./outputs/anteile_tv_absulut_plaus.xlsx")
+
 vis <- melt(vis)
 
 
